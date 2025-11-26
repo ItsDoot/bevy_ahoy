@@ -63,7 +63,7 @@ impl Default for CharacterController {
             crouch_view_height: 1.2,
             ground_distance: 0.05,
             min_walk_cos: 0.766,
-            stop_speed: 2.4,
+            stop_speed: 2.54,
             friction_hz: 4.0,
             acceleration_hz: 5.0,
             air_acceleration_hz: 12.0,
@@ -621,7 +621,6 @@ fn handle_jump(velocity: &mut Vec3, state: &mut CharacterControllerState, ctx: &
     } else {
         velocity.y += ground_factor * fl_mul;
     }
-    finish_gravity(velocity, ctx);
 
     // TODO: Trigger jump event
 }
