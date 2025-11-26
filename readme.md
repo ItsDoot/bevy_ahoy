@@ -10,7 +10,7 @@ A fun 3D Kinematic Character Controller for [Bevy](https://github.com/bevyengine
 *Character controller* means that this crate allows you to move characters in a video game around. This can be either player characters or NPCs.
 
 *Kinematic* means that the controller intentionally does not fully obey the simulation rules of the physics engine. That means that the character will for example ignore any forces.
-This tradeoff allows Ahoy to fully define its own separate model of how a character should move regardless of what the laws of physics say. The goal is not realism, the goal is ~ fun ~.
+This tradeoff allows Ahoy to fully define its own separate model of how a character should move regardless of what the laws of physics say. The goal is not realism, the goal is ~ fun ~
 
 ## Features / Roadmap
 
