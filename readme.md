@@ -33,6 +33,8 @@ This tradeoff allows Ahoy to fully define its own separate model of how a charac
 - [ ] **Water**: Dive up and down in water, move slower, and jump differently out of it
 - [ ] **Surface friction**: Set the friction differently on individual surfaces to make them slippery or extra grippy
 - [ ] **Ladders**: Walk or jump to a ladder to hold onto it, then move to climb up and down on it or jump to get off early. Step up the surface when you reach the end of the ladder.
+- [ ] **Coyote Time**: Jump a tiiny bit after walking off a ledge for better jump feeling
+- [ ] **Input Buffering**: Press the jump button a bit before actually hitting the ground to immediatly jump
 
 ## Usage
 
