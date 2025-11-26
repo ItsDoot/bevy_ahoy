@@ -76,7 +76,7 @@ impl Default for CharacterController {
             max_speed: 100.0,
             jump_height: 1.5,
             max_air_speed: 0.76,
-            unground_speed: 3.5,
+            unground_speed: 10.0,
         }
     }
 }
@@ -435,13 +435,18 @@ fn try_player_move(
     state: &mut CharacterControllerState,
     ctx: &Ctx,
 ) {
+    let mut config = ctx.cfg.move_and_slide.clone();
+    if let Some(grounded) = state.grounded {
+        config.planes.push(Dir3::new_unchecked(grounded.normal1));
+    }
+
     let out = move_and_slide.move_and_slide(
         state.collider(),
         transform.translation,
         transform.rotation,
         state.velocity,
         ctx.dt_duration,
-        &ctx.cfg.move_and_slide,
+        &config,
         &ctx.cfg.filter,
         |_| true,
     );

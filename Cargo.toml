@@ -72,4 +72,4 @@ rustdoc-args = ["-Zunstable-options", "--generate-link-to-definition"]
 all-features = true
 
 [patch.crates-io]
-avian3d = { git = "https://github.com/janhohenheim/avian", branch = "cns" }
+avian3d = { git = "https://github.com/janhohenheim/avian", branch = "give-peck-plz" }

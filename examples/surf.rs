@@ -159,7 +159,7 @@ impl SpawnPlayer {
                 PlayerInput,
                 CharacterController {
                     acceleration_hz: 10.0,
-                    air_acceleration_hz: 800.0,
+                    air_acceleration_hz: 150.0,
                     ..default()
                 },
                 RigidBody::Kinematic,
