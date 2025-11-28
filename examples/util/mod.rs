@@ -1,19 +1,30 @@
 //! Common functionality for the examples. This is just aesthetic stuff, you don't need to copy any of this into your own projects.
 
+use std::f32::consts::TAU;
+
 use avian3d::prelude::*;
 use bevy::{
-    light::CascadeShadowConfigBuilder, pbr::Atmosphere, post_process::bloom::Bloom, prelude::*,
+    camera::Exposure,
+    light::{
+        CascadeShadowConfigBuilder, DirectionalLightShadowMap, ShadowFilteringMethod,
+        light_consts::lux,
+    },
+    pbr::Atmosphere,
+    post_process::bloom::Bloom,
+    prelude::*,
+    window::{CursorGrabMode, CursorOptions},
 };
 use bevy_ahoy::{kcc::CharacterControllerState, prelude::*};
 use bevy_ecs::world::FilteredEntityRef;
 use bevy_enhanced_input::prelude::{Release, *};
+use bevy_fix_cursor_unlock_web::{FixPointerUnlockPlugin, ForceUnlockCursor};
 use bevy_mod_mipmap_generator::{MipmapGeneratorPlugin, generate_mipmaps};
 
 pub(super) struct ExampleUtilPlugin;
 
 impl Plugin for ExampleUtilPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MipmapGeneratorPlugin)
+        app.add_plugins((MipmapGeneratorPlugin, FixPointerUnlockPlugin))
             .add_systems(Startup, setup_ui)
             .add_systems(
                 Update,
@@ -26,6 +37,10 @@ impl Plugin for ExampleUtilPlugin {
             .add_observer(reset_player)
             .add_observer(tweak_camera)
             .add_observer(tweak_directional_light)
+            .add_observer(toggle_debug)
+            .add_observer(unlock_cursor_web)
+            .insert_resource(DirectionalLightShadowMap { size: 4096 * 2 })
+            .add_systems(Update, turn_sun)
             .add_input_context::<DebugInput>()
             // For debug printing
             .register_required_components::<CharacterController, CollidingEntities>();
@@ -100,26 +115,38 @@ fn update_debug_text(
 struct DebugText;
 
 fn setup_ui(mut commands: Commands) {
-    commands.spawn((Node::default(), Text::new("Loading..."), DebugText));
+    commands.spawn((
+        Node::default(),
+        Text::default(),
+        Visibility::Hidden,
+        DebugText,
+    ));
     commands.spawn((
         Node {
             justify_self: JustifySelf::End,
             justify_content: JustifyContent::End,
+            align_self: AlignSelf::End,
+            padding: UiRect::all(px(10.0)),
             ..default()
         },
         Text::new(
-            "Controls:\nWASD: move\nSpace: jump\nSpace (hold): autohop\nCtrl: crouch\nEsc: free mouse\nR: reset position",
+            "Controls:\nWASD: move\nSpace: jump\nSpace (hold): autohop\nCtrl: crouch\nEsc: free mouse\nR: reset position\nBacktick: Toggle Debug Menu",
         ),
     ));
     commands.spawn((
         DebugInput,
-        actions!(
-            DebugInput[(
+        actions!(DebugInput[
+            (
                 Action::<Reset>::new(),
                 bindings![KeyCode::KeyR, GamepadButton::Select],
                 Release::default(),
-            )]
-        ),
+            ),
+            (
+                Action::<ToggleDebug>::new(),
+                bindings![KeyCode::Backquote, GamepadButton::Start],
+                Release::default(),
+            ),
+        ]),
     ));
 }
 
@@ -130,8 +157,22 @@ struct DebugInput;
 #[action_output(bool)]
 pub(super) struct Reset;
 
+#[derive(Debug, InputAction)]
+#[action_output(bool)]
+pub(super) struct ToggleDebug;
+
 fn reset_player(_fire: On<Fire<Reset>>, mut commands: Commands) {
     commands.run_system_cached(reset_player_inner);
+}
+
+fn toggle_debug(
+    _fire: On<Fire<ToggleDebug>>,
+    mut visibility: Single<&mut Visibility, With<DebugText>>,
+) {
+    **visibility = match **visibility {
+        Visibility::Hidden => Visibility::Inherited,
+        _ => Visibility::Hidden,
+    };
 }
 
 fn reset_player_inner(
@@ -188,11 +229,10 @@ fn tweak_materials(
 
 fn tweak_camera(insert: On<Insert, Camera3d>, mut commands: Commands, assets: Res<AssetServer>) {
     commands.entity(insert.entity).insert((
-        Bloom::default(),
         EnvironmentMapLight {
             diffuse_map: assets.load("environment_maps/voortrekker_interior_1k_diffuse.ktx2"),
             specular_map: assets.load("environment_maps/voortrekker_interior_1k_specular.ktx2"),
-            intensity: 2000.0,
+            intensity: 600.0,
             ..default()
         },
         Projection::Perspective(PerspectiveProjection {
@@ -200,6 +240,18 @@ fn tweak_camera(insert: On<Insert, Camera3d>, mut commands: Commands, assets: Re
             ..default()
         }),
         Atmosphere::EARTH,
+        Exposure { ev100: 9.0 },
+        Bloom::default(),
+        DistanceFog {
+            color: Color::srgba(0.35, 0.48, 0.66, 0.4),
+            directional_light_color: Color::srgba(1.0, 0.95, 0.85, 0.5),
+            directional_light_exponent: 30.0,
+            falloff: FogFalloff::from_visibility_colors(
+                600.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                Color::srgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
+                Color::srgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+            ),
+        },
     ));
 }
 
@@ -209,7 +261,7 @@ fn tweak_directional_light(
     directional_light: Query<(&Transform, &DirectionalLight), Without<Tweaked>>,
     tweaked: Query<Entity, With<Tweaked>>,
 ) {
-    let Ok((transform, light)) = directional_light.get(insert.entity) else {
+    let Ok((_transform, light)) = directional_light.get(insert.entity) else {
         return;
     };
     // Can't despawn stuff from scenes in an observer, so let's just make it useless
@@ -222,18 +274,36 @@ fn tweak_directional_light(
         // The shadow map can only be configured on a freshly spawned light
         DirectionalLight {
             shadows_enabled: true,
+            illuminance: lux::AMBIENT_DAYLIGHT,
             ..*light
         },
-        *transform,
+        Transform::IDENTITY,
         Tweaked,
         CascadeShadowConfigBuilder {
             maximum_distance: 500.0,
-            overlap_proportion: 0.5,
+            overlap_proportion: 0.4,
             ..default()
         }
         .build(),
+        ShadowFilteringMethod::Temporal,
     ));
 }
 
 #[derive(Component)]
 struct Tweaked;
+fn turn_sun(mut suns: Query<&mut Transform, With<DirectionalLight>>, time: Res<Time>) {
+    for mut transform in suns.iter_mut() {
+        transform.rotation =
+            Quat::from_rotation_x(
+                -((-time.elapsed_secs() / 100.0) + TAU / 8.0).sin().abs() * TAU / 2.05,
+            ) * Quat::from_rotation_y(((-time.elapsed_secs() / 100.0) + 1.0).sin());
+    }
+}
+
+fn unlock_cursor_web(
+    _unlock: On<ForceUnlockCursor>,
+    mut cursor_options: Single<&mut CursorOptions>,
+) {
+    cursor_options.grab_mode = CursorGrabMode::None;
+    cursor_options.visible = true;
+}

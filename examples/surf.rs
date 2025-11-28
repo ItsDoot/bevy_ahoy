@@ -56,12 +56,14 @@ fn main() -> AppExit {
                         address_mode_u: ImageAddressMode::Repeat,
                         address_mode_v: ImageAddressMode::Repeat,
                         address_mode_w: ImageAddressMode::Repeat,
+                        anisotropy_clamp: 16,
                         ..ImageSamplerDescriptor::linear()
                     },
                 })
                 .set(WindowPlugin {
                     primary_window: Window {
                         resolution: WindowResolution::new(1920, 1080),
+                        fit_canvas_to_parent: true,
                         ..default()
                     }
                     .into(),
@@ -72,7 +74,11 @@ fn main() -> AppExit {
             AhoyPlugin::default(),
             TrenchBroomPlugins(
                 TrenchBroomConfig::new("bevy_ahoy_surf")
-                    .default_solid_scene_hooks(|| SceneHooks::new().convex_collider())
+                    .default_solid_scene_hooks(|| {
+                        SceneHooks::new()
+                            .convex_collider()
+                            .smooth_by_default_angle()
+                    })
                     .auto_remove_textures(
                         [
                             "clip",
@@ -117,9 +123,6 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
     CharacterController {
         acceleration_hz: 10.0,
         air_acceleration_hz: 150.0,
-        // Uncomment these for Momentum Mod style surf
-        // speed: 6.0,
-        // gravity: 23.0,
         ..default()
     },
     RigidBody::Kinematic,
@@ -293,6 +296,7 @@ fn setup_time(_add: On<Add, Player>, mut commands: Commands) {
         Node {
             justify_self: JustifySelf::Center,
             justify_content: JustifyContent::Center,
+            top: px(20.0),
             ..default()
         },
         Text::new("Time: 00:00:000"),

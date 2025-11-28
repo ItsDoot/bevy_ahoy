@@ -68,10 +68,10 @@ impl Default for CharacterController {
             friction_hz: 4.0,
             acceleration_hz: 5.0,
             air_acceleration_hz: 12.0,
-            gravity: 36.0,
+            gravity: 20.3,
             step_size: 1.0,
             crouch_speed_scale: 1.0 / 3.0,
-            speed: 15.5,
+            speed: 10.0,
             air_speed: 1.5,
             move_and_slide: MoveAndSlideConfig {
                 skin_width: 0.0075,

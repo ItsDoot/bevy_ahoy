@@ -19,19 +19,20 @@ f64 = ["avian3d/parry-f64"]
 
 [dependencies]
 avian3d = { version = "0.4.1", default-features = false, features = ["default-collider", "3d"] }
-bevy_ecs = "0.17"
-bevy_app = "0.17"
-bevy_derive = "0.17"
-bevy_utils = "0.17"
-bevy_math = "0.17"
-bevy_reflect = "0.17"
-bevy_transform = "0.17"
-bevy_time = "0.17"
-bevy_enhanced_input = "0.19.3"
-tracing = "0.1"
+bevy_ecs = { version = "0.17", default-features = false }
+bevy_app = { version = "0.17", default-features = false }
+bevy_derive = { version = "0.17", default-features = false }
+bevy_utils = { version = "0.17", default-features = false }
+bevy_math = { version = "0.17", default-features = false }
+bevy_reflect = { version = "0.17", default-features = false }
+bevy_transform = { version = "0.17", default-features = false }
+bevy_time = { version = "0.17", default-features = false }
+bevy_enhanced_input = { version = "0.19.3", default-features = false }
+tracing = { version = "0.1", default-features = false }
+bevy_fix_cursor_unlock_web = "0.2.0"
 
 [dev-dependencies]
-bevy = { version = "0.17", features = ["track_location", "experimental_pbr_pcss"] }
+bevy = { version = "0.17", features = ["track_location"] }
 bevy_trenchbroom = "0.11.0"
 bevy_trenchbroom_avian = "0.11.0"
 bevy_mod_mipmap_generator = { git = "https://github.com/DGriffin91/bevy_mod_mipmap_generator" }
