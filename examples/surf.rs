@@ -56,6 +56,7 @@ fn main() -> AppExit {
                         address_mode_u: ImageAddressMode::Repeat,
                         address_mode_v: ImageAddressMode::Repeat,
                         address_mode_w: ImageAddressMode::Repeat,
+                        anisotropy_clamp: 16,
                         ..ImageSamplerDescriptor::linear()
                     },
                 })
@@ -72,7 +73,11 @@ fn main() -> AppExit {
             AhoyPlugin::default(),
             TrenchBroomPlugins(
                 TrenchBroomConfig::new("bevy_ahoy_surf")
-                    .default_solid_scene_hooks(|| SceneHooks::new().convex_collider())
+                    .default_solid_scene_hooks(|| {
+                        SceneHooks::new()
+                            .convex_collider()
+                            .smooth_by_default_angle()
+                    })
                     .auto_remove_textures(
                         [
                             "clip",

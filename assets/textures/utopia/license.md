@@ -1,1 +1,2 @@
-Utopia assets were created for [surf_utopia_v3​​](https://gamebanana.com/mods/72161) by Panzerhandschuh and licensed under [CC BY-NC-ND 4.0​​​](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+Original assets owned by Valve, so these are CC0 recreations by the bevy_ahoy maintainers.
+Except for `trim_plaster_white_flat`, which is CC BY-NC-SA 3.0 by The Dark Mod Team, converted to Bevy-friendly assets by the bevy_ahoy maintainers.

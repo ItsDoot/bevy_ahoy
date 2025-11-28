@@ -31,7 +31,7 @@ bevy_enhanced_input = { version = "0.19.3", default-features = false }
 tracing = { version = "0.1", default-features = false }
 
 [dev-dependencies]
-bevy = { version = "0.17", features = ["track_location", "experimental_pbr_pcss"] }
+bevy = { version = "0.17", features = ["track_location"] }
 bevy_trenchbroom = "0.11.0"
 bevy_trenchbroom_avian = "0.11.0"
 bevy_mod_mipmap_generator = { git = "https://github.com/DGriffin91/bevy_mod_mipmap_generator" }

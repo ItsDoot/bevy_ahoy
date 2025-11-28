@@ -1,19 +1,31 @@
 //! Common functionality for the examples. This is just aesthetic stuff, you don't need to copy any of this into your own projects.
 
+use std::f32::consts::{PI, TAU};
+
 use avian3d::prelude::*;
 use bevy::{
-    light::CascadeShadowConfigBuilder, pbr::Atmosphere, post_process::bloom::Bloom, prelude::*,
+    anti_alias::taa::TemporalAntiAliasing,
+    camera::Exposure,
+    core_pipeline::tonemapping::Tonemapping,
+    light::{
+        AtmosphereEnvironmentMapLight, CascadeShadowConfigBuilder, DirectionalLightShadowMap,
+        ShadowFilteringMethod, light_consts::lux,
+    },
+    pbr::{Atmosphere, ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel},
+    post_process::bloom::Bloom,
+    prelude::*,
 };
 use bevy_ahoy::{kcc::CharacterControllerState, prelude::*};
 use bevy_ecs::world::FilteredEntityRef;
 use bevy_enhanced_input::prelude::{Release, *};
+use bevy_math::VectorSpace;
 use bevy_mod_mipmap_generator::{MipmapGeneratorPlugin, generate_mipmaps};
 
 pub(super) struct ExampleUtilPlugin;
 
 impl Plugin for ExampleUtilPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MipmapGeneratorPlugin)
+        app.add_plugins((MipmapGeneratorPlugin))
             .add_systems(Startup, setup_ui)
             .add_systems(
                 Update,
@@ -26,6 +38,8 @@ impl Plugin for ExampleUtilPlugin {
             .add_observer(reset_player)
             .add_observer(tweak_camera)
             .add_observer(tweak_directional_light)
+            .insert_resource(DirectionalLightShadowMap { size: 4096 })
+            .add_systems(Update, dynamic_scene)
             .add_input_context::<DebugInput>()
             // For debug printing
             .register_required_components::<CharacterController, CollidingEntities>();
@@ -188,11 +202,10 @@ fn tweak_materials(
 
 fn tweak_camera(insert: On<Insert, Camera3d>, mut commands: Commands, assets: Res<AssetServer>) {
     commands.entity(insert.entity).insert((
-        Bloom::default(),
         EnvironmentMapLight {
             diffuse_map: assets.load("environment_maps/voortrekker_interior_1k_diffuse.ktx2"),
             specular_map: assets.load("environment_maps/voortrekker_interior_1k_specular.ktx2"),
-            intensity: 2000.0,
+            intensity: 600.0,
             ..default()
         },
         Projection::Perspective(PerspectiveProjection {
@@ -200,6 +213,18 @@ fn tweak_camera(insert: On<Insert, Camera3d>, mut commands: Commands, assets: Re
             ..default()
         }),
         Atmosphere::EARTH,
+        Exposure { ev100: 9.0 },
+        Bloom::default(),
+        DistanceFog {
+            color: Color::srgba(0.35, 0.48, 0.66, 0.5),
+            directional_light_color: Color::srgba(1.0, 0.95, 0.85, 0.5),
+            directional_light_exponent: 30.0,
+            falloff: FogFalloff::from_visibility_colors(
+                600.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                Color::srgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
+                Color::srgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+            ),
+        },
     ));
 }
 
@@ -209,7 +234,7 @@ fn tweak_directional_light(
     directional_light: Query<(&Transform, &DirectionalLight), Without<Tweaked>>,
     tweaked: Query<Entity, With<Tweaked>>,
 ) {
-    let Ok((transform, light)) = directional_light.get(insert.entity) else {
+    let Ok((_transform, light)) = directional_light.get(insert.entity) else {
         return;
     };
     // Can't despawn stuff from scenes in an observer, so let's just make it useless
@@ -222,18 +247,28 @@ fn tweak_directional_light(
         // The shadow map can only be configured on a freshly spawned light
         DirectionalLight {
             shadows_enabled: true,
+            illuminance: lux::AMBIENT_DAYLIGHT,
             ..*light
         },
-        *transform,
+        Transform::IDENTITY,
         Tweaked,
         CascadeShadowConfigBuilder {
             maximum_distance: 500.0,
-            overlap_proportion: 0.5,
+            overlap_proportion: 0.4,
             ..default()
         }
         .build(),
+        ShadowFilteringMethod::Temporal,
     ));
 }
 
 #[derive(Component)]
 struct Tweaked;
+fn dynamic_scene(mut suns: Query<&mut Transform, With<DirectionalLight>>, time: Res<Time>) {
+    for mut transform in suns.iter_mut() {
+        transform.rotation =
+            Quat::from_rotation_x(
+                -((-time.elapsed_secs() / 200.0) + TAU / 8.0).sin().abs() * TAU / 2.05,
+            ) * Quat::from_rotation_y(((-time.elapsed_secs() / 200.0) + 1.0).sin());
+    }
+}
