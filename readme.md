@@ -38,7 +38,60 @@ This tradeoff allows Ahoy to fully define its own separate model of how a charac
 
 ## Usage
 
-TODO ;)
+```rust
+use bevy::prelude::*;
+use bevy_enhanced_input::prelude::*;
+use bevy_ahoy::prelude::*;
+
+#[derive(Component)]
+struct PlayerInput;
+
+fn spawn_player(mut commands: Commands) {
+    // Spawn the player entity
+    let player = commands
+        .spawn((
+            // The character controller configuration
+            CharacterController::default(),
+            Transform::from_xyz(0.0, 20.0, 0.0),
+            // Configure inputs
+            PlayerInput,
+            actions!(PlayerInput[
+                (
+                    Action::<Movement>::new(),
+                    DeadZone::default(),
+                    Bindings::spawn((
+                        Cardinal::wasd_keys(),
+                        Axial::left_stick()
+                    ))
+                ),
+                (
+                    Action::<Jump>::new(),
+                    bindings![KeyCode::Space,  GamepadButton::South],
+                ),
+                (
+                    Action::<Crouch>::new(),
+                    bindings![KeyCode::ControlLeft, GamepadButton::LeftTrigger],
+                ),
+                (
+                    Action::<RotateCamera>::new(),
+                    Scale::splat(0.04),
+                    Bindings::spawn((
+                        Spawn(Binding::mouse_motion()),
+                        Axial::right_stick()
+                    ))
+                ),
+            ]),
+        ))
+        .id();
+
+    // Spawn the camera
+    commands.spawn((
+        Camera3d::default(),
+        // Enable the optional builtin camera controller
+        CharacterControllerCameraOf(player),
+    ));
+}
+```
 
 ## Inspiration
 
